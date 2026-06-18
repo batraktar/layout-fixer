@@ -1,0 +1,24 @@
+[package]
+name = "layout-fixer"
+version = "0.1.0"
+description = "Fix text typed with the wrong keyboard layout"
+authors = ["batraktar"]
+license = "MIT"
+edition = "2021"
+rust-version = "1.85"
+
+[lib]
+name = "layout_fixer_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+enigo = "0.6.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-global-shortcut = "2"
+
