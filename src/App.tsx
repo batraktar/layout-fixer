@@ -24,7 +24,7 @@ interface LayoutInfo {
 }
 
 const isMac = navigator.userAgent.includes("Mac");
-const defaultShortcut = isMac ? "⌘ ⇧ L" : "Ctrl + Shift + L";
+const defaultShortcut = isMac ? "\u2318 \u21E7 L" : "Ctrl + Shift + L";
 
 export default function App() {
   const [input, setInput] = useState("Ghbdsn");
@@ -37,7 +37,7 @@ export default function App() {
     shortcutRegistered: false,
     lastStatus: {
       kind: "info",
-      message: isTauri() ? "Loading background status…" : "Browser debug mode",
+      message: isTauri() ? "Loading background status\u2026" : "Browser debug mode",
     },
   });
 
@@ -91,7 +91,7 @@ export default function App() {
         setOutput(result);
         const direction = detectDirection(input);
         setConvertedDirection(
-          direction === "en-to-ua" ? "English → Українська" : "Українська → English",
+          direction === "en-to-ua" ? "English \u2192 \u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430" : "\u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430 \u2192 English",
         );
       } catch (error) {
         setRuntime((current) => ({
@@ -103,7 +103,7 @@ export default function App() {
       const direction = detectDirection(input);
       setOutput(convertLayout(input, direction));
       setConvertedDirection(
-        direction === "en-to-ua" ? "English → Українська" : "Українська → English",
+        direction === "en-to-ua" ? "English \u2192 \u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430" : "\u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430 \u2192 English",
       );
     }
   };
@@ -130,86 +130,123 @@ export default function App() {
     }
   };
 
+  const isRunning = runtime.backgroundActive && runtime.shortcutRegistered;
+
   return (
     <main className="app-shell">
-      <header className="settings-header">
-        <div>
-          <p className="eyebrow">BACKGROUND UTILITY</p>
-          <h1>Layout Fixer</h1>
+      <div className="title-bar">
+        <span className="title-bar-text">Layout Fixer</span>
+        <div className="title-bar-controls">
+          <button type="button" aria-label="Minimize" tabIndex={-1}>_</button>
         </div>
-        <span
-          className={`health-dot ${runtime.shortcutRegistered ? "active" : "inactive"}`}
-          aria-hidden="true"
-        />
-      </header>
+      </div>
 
-      <section className="status-card" aria-label="Application status">
-        <div className="status-row">
-          <span>Status</span>
-          <strong>
-            {runtime.backgroundActive && runtime.shortcutRegistered
-              ? "Running in background"
-              : "Shortcut unavailable"}
-          </strong>
+      {/* Header */}
+      <div className="group-box">
+        <span className="group-box-label">Layout Fixer</span>
+        <div className="header-area">
+          <div className="header-left">
+            <h1>Layout Fixer</h1>
+            <p className="tagline">Fix wrong keyboard layouts with one shortcut</p>
+          </div>
+          <span className={`status-badge ${isRunning ? "running" : "error"}`}>
+            <span className={`status-dot ${isRunning ? "on" : "off"}`} />
+            {isRunning ? "Running" : "Inactive"}
+          </span>
         </div>
-        <div className="status-row">
-          <span>Shortcut</span>
+      </div>
+
+      {/* Shortcut */}
+      <div className="group-box">
+        <span className="group-box-label">Shortcut</span>
+        <div className="shortcut-display">
           <kbd>{runtime.shortcut}</kbd>
         </div>
+        <p className="shortcut-hint">
+          Select text in any app and press the shortcut.
+        </p>
         {layouts.length > 0 && (
-          <div className="status-row">
-            <span>Layouts</span>
-            <strong>{layouts.filter((l) => l.enabled).length} active</strong>
+          <p className="shortcut-hint" style={{ marginTop: 4 }}>
+            {layouts.filter((l) => l.enabled).length} layout(s) active
+          </p>
+        )}
+        {runtime.lastStatus.message && (
+          <div className={`operation-status ${runtime.lastStatus.kind}`} role="status">
+            {runtime.lastStatus.message}
           </div>
         )}
-        <p className={`operation-status ${runtime.lastStatus.kind}`} role="status">
-          {runtime.lastStatus.message}
-        </p>
-      </section>
+      </div>
 
-      <section className="debug-panel" aria-label="Debug converter">
-        <div className="section-heading">
-          <div>
-            <h2>Debug converter</h2>
-            <p>The main workflow does not require this window.</p>
-          </div>
+      {/* Layouts */}
+      {layouts.length > 0 && (
+        <div className="group-box">
+          <span className="group-box-label">Layouts</span>
+          <ul className="layout-list">
+            {layouts.map((layout) => (
+              <li key={layout.id} className="layout-item">
+                <span className="layout-name">{layout.name}</span>
+                <span className={`layout-status ${layout.enabled ? "enabled" : "disabled"}`}>
+                  {layout.enabled ? "ON" : "OFF"}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
+      )}
 
-        <label htmlFor="source">Test input</label>
+      {/* Test converter */}
+      <div className="group-box">
+        <span className="group-box-label">Test Conversion</span>
+        <label htmlFor="source">Input</label>
         <textarea
           id="source"
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="For example: Ghbdsn"
+          placeholder="Type or paste text, e.g. Ghbdtn"
           spellCheck={false}
         />
-
         <div className="actions">
           <button type="button" onClick={() => void convertDebugText()}>
             Convert
           </button>
           <button
-            className="secondary"
             type="button"
             onClick={() => void copyResult()}
             disabled={!output}
           >
-            Copy result
+            Copy Result
           </button>
         </div>
-
         {output && (
-          <div className="result" aria-live="polite">
-            <span>{convertedDirection}</span>
-            <p>{output}</p>
+          <div className="result-box" aria-live="polite">
+            <span className="result-label">{convertedDirection}</span>
+            <p className="result-value">{output}</p>
           </div>
         )}
-      </section>
+      </div>
 
-      <p className="usage-hint">
-        Select text in any app, then press <strong>{runtime.shortcut}</strong>.
-        Closing this window keeps Layout Fixer running in the tray.
-      </p>
+      {/* Privacy */}
+      <div className="group-box">
+        <span className="group-box-label">Privacy</span>
+        <ul className="privacy-list">
+          <li>Works locally on your machine</li>
+          <li>No cloud, no servers</li>
+          <li>No tracking or analytics</li>
+          <li>Your text is never sent anywhere</li>
+        </ul>
+      </div>
+
+      {/* Status bar */}
+      <div className="status-bar">
+        <div className="status-bar-left">
+          <span>v0.1.0</span>
+          <span className="status-separator" />
+          <span>{isMac ? "macOS" : navigator.platform.includes("Win") ? "Windows" : "Linux"}</span>
+        </div>
+        <div className="status-bar-right">
+          <span>{isTauri() ? "Tauri" : "Browser"}</span>
+        </div>
+      </div>
     </main>
   );
 }
