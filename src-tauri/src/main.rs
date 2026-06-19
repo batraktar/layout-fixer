@@ -1,12 +1,14 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::{
+    path::PathBuf,
     sync::{atomic::{AtomicBool, Ordering}, Mutex},
     thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 mod layouts;
+mod settings;
 
 use enigo::{Direction, Enigo, Key, Keyboard, Settings};
 use serde::Serialize;
@@ -49,6 +51,8 @@ struct AppState {
     last_status: Mutex<OperationStatus>,
     layout_configs: Mutex<Vec<layouts::LayoutConfig>>,
     layout_maps: Mutex<Vec<(String, layouts::LayoutMaps)>>,
+    app_settings: Mutex<settings::AppSettings>,
+    settings_path: Mutex<PathBuf>,
 }
 
 impl Default for AppState {
@@ -62,6 +66,8 @@ impl Default for AppState {
             }),
             layout_configs: Mutex::new(Vec::new()),
             layout_maps: Mutex::new(Vec::new()),
+            app_settings: Mutex::new(settings::AppSettings::default()),
+            settings_path: Mutex::new(PathBuf::new()),
         }
     }
 }
@@ -272,7 +278,17 @@ fn replace_selected_text(app: &AppHandle) -> Result<ConversionDirection, String>
     // Most applications consume paste synchronously. The delay avoids restoring
     // the clipboard before slower applications have read the converted text.
     thread::sleep(Duration::from_millis(350));
-    restore_clipboard(app, backup)?;
+
+    let should_restore = app
+        .state::<AppState>()
+        .app_settings
+        .lock()
+        .map(|s| s.restore_clipboard)
+        .unwrap_or(true);
+
+    if should_restore {
+        restore_clipboard(app, backup)?;
+    }
 
     Ok(direction)
 }
@@ -490,12 +506,37 @@ fn toggle_layout(id: String, state: State<'_, AppState>) -> Result<(), String> {
     if config.enabled {
         if !maps.iter().any(|(mid, _)| mid == &id) {
             let new_maps = layouts::build_maps(config).map_err(|e| e)?;
-            maps.push((id, new_maps));
+            maps.push((id.clone(), new_maps));
         }
     } else {
         maps.retain(|(mid, _)| mid != &id);
     }
 
+    // Persist disabled layout state
+    let mut settings = state.app_settings.lock().unwrap();
+    if config.enabled {
+        settings.disabled_layouts.retain(|lid| lid != &id);
+    } else {
+        if !settings.disabled_layouts.contains(&id) {
+            settings.disabled_layouts.push(id);
+        }
+    }
+    let path = state.settings_path.lock().unwrap();
+    let _ = settings::save_settings(&path, &settings);
+
+    Ok(())
+}
+
+#[tauri::command]
+fn get_settings(state: State<'_, AppState>) -> settings::AppSettings {
+    state.app_settings.lock().unwrap().clone()
+}
+
+#[tauri::command]
+fn update_settings(new_settings: settings::AppSettings, state: State<'_, AppState>) -> Result<(), String> {
+    let path = state.settings_path.lock().unwrap().clone();
+    settings::save_settings(&path, &new_settings)?;
+    *state.app_settings.lock().unwrap() = new_settings;
     Ok(())
 }
 
@@ -508,35 +549,61 @@ fn main() {
             runtime_status,
             convert_text,
             list_layouts,
-            toggle_layout
+            toggle_layout,
+            get_settings,
+            update_settings
         ]);
 
     let builder = setup_window_event_handler(builder);
 
     builder
         .setup(|app| {
+            let app_data_dir = app
+                .path()
+                .app_data_dir()
+                .unwrap_or_else(|_| std::env::temp_dir());
+
+            let settings_file = settings::settings_path(&app_data_dir);
+            let app_settings = settings::load_settings(&settings_file);
+            let _ = settings::save_settings(&settings_file, &app_settings);
+
             let bundled = layouts::load_bundled_layouts().unwrap_or_else(|error| {
                 eprintln!("Warning: {error}");
                 Vec::new()
             });
+
             let state = app.state::<AppState>();
+            *state.settings_path.lock().unwrap() = settings_file;
+            *state.app_settings.lock().unwrap() = app_settings.clone();
 
             let mut maps = Vec::new();
-            for config in &bundled {
+            let mut configs = Vec::new();
+            for mut config in bundled {
+                if app_settings.disabled_layouts.contains(&config.id) {
+                    config.enabled = false;
+                }
                 if config.enabled {
-                    match layouts::build_maps(config) {
+                    match layouts::build_maps(&config) {
                         Ok(m) => maps.push((config.id.clone(), m)),
                         Err(e) => eprintln!("Warning: skipping layout '{}': {e}", config.id),
                     }
                 }
+                configs.push(config);
             }
 
-            *state.layout_configs.lock().unwrap() = bundled;
+            *state.layout_configs.lock().unwrap() = configs;
             *state.layout_maps.lock().unwrap() = maps;
 
             setup_settings_window(app)?;
             setup_global_shortcut(app);
             setup_tray(app)?;
+
+            if app_settings.show_settings_on_startup {
+                if let Some(window) = app.get_webview_window("main") {
+                    show_settings(&window);
+                }
+            }
+
             Ok(())
         })
         .run(tauri::generate_context!())
