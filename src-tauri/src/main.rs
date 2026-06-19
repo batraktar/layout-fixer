@@ -376,16 +376,27 @@ fn setup_settings_window(app: &mut tauri::App) -> tauri::Result<()> {
     app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
     if let Some(window) = app.get_webview_window("main") {
-        let window_to_hide = window.clone();
+        let handle = window.clone();
         window.on_window_event(move |event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
-                let _ = window_to_hide.hide();
+                let _ = handle.hide();
             }
         });
     }
 
     Ok(())
+}
+
+fn setup_window_event_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
+    builder.on_window_event(|window, event| {
+        if let WindowEvent::CloseRequested { api, .. } = event {
+            if window.label() == "main" {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        }
+    })
 }
 
 fn setup_global_shortcut(app: &tauri::App) {
@@ -489,7 +500,7 @@ fn toggle_layout(id: String, state: State<'_, AppState>) -> Result<(), String> {
 }
 
 fn main() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .manage(AppState::default())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
@@ -498,7 +509,11 @@ fn main() {
             convert_text,
             list_layouts,
             toggle_layout
-        ])
+        ]);
+
+    let builder = setup_window_event_handler(builder);
+
+    builder
         .setup(|app| {
             let bundled = layouts::load_bundled_layouts().unwrap_or_else(|error| {
                 eprintln!("Warning: {error}");
