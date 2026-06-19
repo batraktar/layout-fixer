@@ -1,150 +1,214 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
-import {
-  readText,
-  writeText,
-} from "@tauri-apps/plugin-clipboard-manager";
-import {
-  register,
-  unregister,
-} from "@tauri-apps/plugin-global-shortcut";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { convertLayout } from "./lib/convertLayout";
 import { detectDirection } from "./lib/detectDirection";
 
-const isMac = navigator.userAgent.includes("Mac");
-const shortcut = isMac ? "Command+Shift+L" : "Control+Shift+L";
-const shortcutLabel = isMac ? "⌘ ⇧ L" : "Ctrl + Shift + L";
+interface OperationStatus {
+  kind: "info" | "success" | "error";
+  message: string;
+}
 
-const sleep = (milliseconds: number) =>
-  new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+interface RuntimeStatus {
+  backgroundActive: boolean;
+  shortcut: string;
+  shortcutRegistered: boolean;
+  lastStatus: OperationStatus;
+}
+
+interface LayoutInfo {
+  id: string;
+  name: string;
+  enabled: boolean;
+}
+
+const isMac = navigator.userAgent.includes("Mac");
+const defaultShortcut = isMac ? "⌘ ⇧ L" : "Ctrl + Shift + L";
 
 export default function App() {
   const [input, setInput] = useState("Ghbdsn");
-  const [status, setStatus] = useState(
-    isTauri() ? "Гарячий клавіш реєструється…" : "Браузерний режим",
-  );
-  const output = useMemo(() => convertLayout(input), [input]);
-  const direction = useMemo(() => detectDirection(input), [input]);
-
-  const convertClipboard = useCallback(async (pasteBack: boolean) => {
-    try {
-      setStatus(pasteBack ? "Копіювання виділеного тексту…" : "Читання буфера…");
-
-      if (pasteBack) {
-        await invoke("simulate_copy");
-        await sleep(160);
-      }
-
-      const original = await readText();
-      const converted = convertLayout(original);
-      await writeText(converted);
-
-      if (pasteBack) {
-        await sleep(80);
-        await invoke("simulate_paste");
-      }
-
-      setInput(original);
-      setStatus(
-        pasteBack
-          ? "Текст виправлено та вставлено"
-          : "Конвертований текст записано в буфер",
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setStatus(`Помилка: ${message}`);
-    }
-  }, []);
+  const [output, setOutput] = useState("");
+  const [convertedDirection, setConvertedDirection] = useState("");
+  const [layouts, setLayouts] = useState<LayoutInfo[]>([]);
+  const [runtime, setRuntime] = useState<RuntimeStatus>({
+    backgroundActive: isTauri(),
+    shortcut: defaultShortcut,
+    shortcutRegistered: false,
+    lastStatus: {
+      kind: "info",
+      message: isTauri() ? "Loading background status…" : "Browser debug mode",
+    },
+  });
 
   useEffect(() => {
     if (!isTauri()) {
       return;
     }
 
-    let active = true;
+    let disposed = false;
+    let unlisten: UnlistenFn | undefined;
 
-    register(shortcut, (event) => {
-      if (event.state === "Released" && active) {
-        void convertClipboard(true);
-      }
-    })
-      .then(() => {
-        if (active) setStatus(`Готово: ${shortcutLabel}`);
+    void invoke<RuntimeStatus>("runtime_status")
+      .then((status) => {
+        if (!disposed) setRuntime(status);
       })
       .catch((error: unknown) => {
-        if (active) setStatus(`Не вдалося зареєструвати shortcut: ${String(error)}`);
+        if (!disposed) {
+          setRuntime((current) => ({
+            ...current,
+            lastStatus: { kind: "error", message: String(error) },
+          }));
+        }
       });
 
-    return () => {
-      active = false;
-      void unregister(shortcut);
-    };
-  }, [convertClipboard]);
+    void invoke<LayoutInfo[]>("list_layouts")
+      .then((list) => {
+        if (!disposed) setLayouts(list);
+      })
+      .catch(() => {});
 
-  const copyManualResult = async () => {
+    void listen<OperationStatus>("operation-status", (event) => {
+      setRuntime((current) => ({ ...current, lastStatus: event.payload }));
+    }).then((stopListening) => {
+      if (disposed) {
+        stopListening();
+      } else {
+        unlisten = stopListening;
+      }
+    });
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, []);
+
+  const convertDebugText = async () => {
+    if (isTauri()) {
+      try {
+        const result = await invoke<string>("convert_text", { text: input });
+        setOutput(result);
+        const direction = detectDirection(input);
+        setConvertedDirection(
+          direction === "en-to-ua" ? "English → Українська" : "Українська → English",
+        );
+      } catch (error) {
+        setRuntime((current) => ({
+          ...current,
+          lastStatus: { kind: "error", message: String(error) },
+        }));
+      }
+    } else {
+      const direction = detectDirection(input);
+      setOutput(convertLayout(input, direction));
+      setConvertedDirection(
+        direction === "en-to-ua" ? "English → Українська" : "Українська → English",
+      );
+    }
+  };
+
+  const copyResult = async () => {
+    if (!output) return;
+
     try {
       if (isTauri()) {
         await writeText(output);
       } else {
         await navigator.clipboard.writeText(output);
       }
-      setStatus("Результат записано в буфер");
+
+      setRuntime((current) => ({
+        ...current,
+        lastStatus: { kind: "success", message: "Debug result copied" },
+      }));
     } catch (error) {
-      setStatus(`Помилка буфера: ${String(error)}`);
+      setRuntime((current) => ({
+        ...current,
+        lastStatus: { kind: "error", message: String(error) },
+      }));
     }
   };
 
   return (
     <main className="app-shell">
-      <section className="hero">
+      <header className="settings-header">
         <div>
-          <p className="eyebrow">LOCAL · PRIVATE · FAST</p>
+          <p className="eyebrow">BACKGROUND UTILITY</p>
           <h1>Layout Fixer</h1>
-          <p className="subtitle">
-            Виправляє текст, набраний не тією розкладкою. Дані не залишають
-            ваш комп’ютер.
-          </p>
         </div>
-        <div className="shortcut" aria-label={`Гарячий клавіш ${shortcutLabel}`}>
-          {shortcutLabel}
+        <span
+          className={`health-dot ${runtime.shortcutRegistered ? "active" : "inactive"}`}
+          aria-hidden="true"
+        />
+      </header>
+
+      <section className="status-card" aria-label="Application status">
+        <div className="status-row">
+          <span>Status</span>
+          <strong>
+            {runtime.backgroundActive && runtime.shortcutRegistered
+              ? "Running in background"
+              : "Shortcut unavailable"}
+          </strong>
         </div>
+        <div className="status-row">
+          <span>Shortcut</span>
+          <kbd>{runtime.shortcut}</kbd>
+        </div>
+        {layouts.length > 0 && (
+          <div className="status-row">
+            <span>Layouts</span>
+            <strong>{layouts.filter((l) => l.enabled).length} active</strong>
+          </div>
+        )}
+        <p className={`operation-status ${runtime.lastStatus.kind}`} role="status">
+          {runtime.lastStatus.message}
+        </p>
       </section>
 
-      <section className="workspace" aria-label="Ручна перевірка конвертації">
-        <label htmlFor="source">Введений текст</label>
+      <section className="debug-panel" aria-label="Debug converter">
+        <div className="section-heading">
+          <div>
+            <h2>Debug converter</h2>
+            <p>The main workflow does not require this window.</p>
+          </div>
+        </div>
+
+        <label htmlFor="source">Test input</label>
         <textarea
           id="source"
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="Наприклад: Ghbdsn"
+          placeholder="For example: Ghbdsn"
           spellCheck={false}
         />
 
-        <div className="direction">
-          {direction === "en-to-ua" ? "English → Українська" : "Українська → English"}
-        </div>
-
-        <label htmlFor="result">Результат</label>
-        <textarea id="result" value={output} readOnly spellCheck={false} />
-
         <div className="actions">
-          <button type="button" onClick={() => void copyManualResult()}>
-            Копіювати результат
+          <button type="button" onClick={() => void convertDebugText()}>
+            Convert
           </button>
           <button
             className="secondary"
             type="button"
-            onClick={() => void convertClipboard(false)}
-            disabled={!isTauri()}
+            onClick={() => void copyResult()}
+            disabled={!output}
           >
-            Конвертувати буфер
+            Copy result
           </button>
         </div>
+
+        {output && (
+          <div className="result" aria-live="polite">
+            <span>{convertedDirection}</span>
+            <p>{output}</p>
+          </div>
+        )}
       </section>
 
-      <p className="status" role="status">{status}</p>
-      <p className="hint">
-        Виділіть текст в іншій програмі та натисніть <strong>{shortcutLabel}</strong>.
+      <p className="usage-hint">
+        Select text in any app, then press <strong>{runtime.shortcut}</strong>.
+        Closing this window keeps Layout Fixer running in the tray.
       </p>
     </main>
   );

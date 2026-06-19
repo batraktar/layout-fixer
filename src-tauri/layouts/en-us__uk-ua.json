@@ -1,0 +1,9 @@
+{
+  "id": "en-us__uk-ua",
+  "name": "English (US) ↔ Українська",
+  "from": "en",
+  "to": "uk",
+  "latinKeys": "`qwertyuiop[]asdfghjkl;'zxcvbnm,./",
+  "nativeKeys": "'йцукенгшщзхїфівапролджєячсмитьбю.",
+  "enabled": true
+}
