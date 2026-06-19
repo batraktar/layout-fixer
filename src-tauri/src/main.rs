@@ -483,26 +483,29 @@ fn list_layouts(state: State<'_, AppState>) -> Vec<LayoutInfo> {
     state
         .layout_configs
         .lock()
-        .unwrap()
-        .iter()
-        .map(|config| LayoutInfo {
-            id: config.id.clone(),
-            name: config.name.clone(),
-            enabled: config.enabled,
+        .map(|configs| {
+            configs
+                .iter()
+                .map(|config| LayoutInfo {
+                    id: config.id.clone(),
+                    name: config.name.clone(),
+                    enabled: config.enabled,
+                })
+                .collect()
         })
-        .collect()
+        .unwrap_or_default()
 }
 
 #[tauri::command]
 fn toggle_layout(id: String, state: State<'_, AppState>) -> Result<(), String> {
-    let mut configs = state.layout_configs.lock().unwrap();
+    let mut configs = state.layout_configs.lock().map_err(|e| format!("Lock error: {e}"))?;
     let config = configs
         .iter_mut()
         .find(|c| c.id == id)
         .ok_or_else(|| format!("Layout not found: {id}"))?;
     config.enabled = !config.enabled;
 
-    let mut maps = state.layout_maps.lock().unwrap();
+    let mut maps = state.layout_maps.lock().map_err(|e| format!("Lock error: {e}"))?;
     if config.enabled {
         if !maps.iter().any(|(mid, _)| mid == &id) {
             let new_maps = layouts::build_maps(config).map_err(|e| e)?;
@@ -513,7 +516,7 @@ fn toggle_layout(id: String, state: State<'_, AppState>) -> Result<(), String> {
     }
 
     // Persist disabled layout state
-    let mut settings = state.app_settings.lock().unwrap();
+    let mut settings = state.app_settings.lock().map_err(|e| format!("Lock error: {e}"))?;
     if config.enabled {
         settings.disabled_layouts.retain(|lid| lid != &id);
     } else {
@@ -521,22 +524,31 @@ fn toggle_layout(id: String, state: State<'_, AppState>) -> Result<(), String> {
             settings.disabled_layouts.push(id);
         }
     }
-    let path = state.settings_path.lock().unwrap();
-    let _ = settings::save_settings(&path, &settings);
+    if let Ok(path) = state.settings_path.lock() {
+        let _ = settings::save_settings(&path, &settings);
+    }
 
     Ok(())
 }
 
 #[tauri::command]
 fn get_settings(state: State<'_, AppState>) -> settings::AppSettings {
-    state.app_settings.lock().unwrap().clone()
+    state
+        .app_settings
+        .lock()
+        .map(|s| s.clone())
+        .unwrap_or_default()
 }
 
 #[tauri::command]
 fn update_settings(new_settings: settings::AppSettings, state: State<'_, AppState>) -> Result<(), String> {
-    let path = state.settings_path.lock().unwrap().clone();
+    let path = state
+        .settings_path
+        .lock()
+        .map_err(|e| format!("Lock error: {e}"))?
+        .clone();
     settings::save_settings(&path, &new_settings)?;
-    *state.app_settings.lock().unwrap() = new_settings;
+    *state.app_settings.lock().map_err(|e| format!("Lock error: {e}"))? = new_settings;
     Ok(())
 }
 
@@ -565,7 +577,10 @@ fn main() {
 
             let settings_file = settings::settings_path(&app_data_dir);
             let app_settings = settings::load_settings(&settings_file);
-            let _ = settings::save_settings(&settings_file, &app_settings);
+
+            if let Err(e) = settings::save_settings(&settings_file, &app_settings) {
+                eprintln!("Warning: could not save settings: {e}");
+            }
 
             let bundled = layouts::load_bundled_layouts().unwrap_or_else(|error| {
                 eprintln!("Warning: {error}");
@@ -573,8 +588,12 @@ fn main() {
             });
 
             let state = app.state::<AppState>();
-            *state.settings_path.lock().unwrap() = settings_file;
-            *state.app_settings.lock().unwrap() = app_settings.clone();
+            if let Ok(mut path) = state.settings_path.lock() {
+                *path = settings_file;
+            }
+            if let Ok(mut settings) = state.app_settings.lock() {
+                *settings = app_settings.clone();
+            }
 
             let mut maps = Vec::new();
             let mut configs = Vec::new();
@@ -591,8 +610,12 @@ fn main() {
                 configs.push(config);
             }
 
-            *state.layout_configs.lock().unwrap() = configs;
-            *state.layout_maps.lock().unwrap() = maps;
+            if let Ok(mut lc) = state.layout_configs.lock() {
+                *lc = configs;
+            }
+            if let Ok(mut lm) = state.layout_maps.lock() {
+                *lm = maps;
+            }
 
             setup_settings_window(app)?;
             setup_global_shortcut(app);

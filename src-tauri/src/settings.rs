@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
@@ -22,23 +22,34 @@ impl Default for AppSettings {
     }
 }
 
-pub fn settings_path(app_data_dir: &PathBuf) -> PathBuf {
+pub fn settings_path(app_data_dir: &Path) -> std::path::PathBuf {
     app_data_dir.join(SETTINGS_FILE)
 }
 
-pub fn load_settings(path: &PathBuf) -> AppSettings {
+pub fn load_settings(path: &Path) -> AppSettings {
     match std::fs::read_to_string(path) {
-        Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
-        Err(_) => AppSettings::default(),
+        Ok(content) => match serde_json::from_str::<AppSettings>(&content) {
+            Ok(settings) => settings,
+            Err(e) => {
+                eprintln!("Warning: invalid settings file, using defaults: {e}");
+                AppSettings::default()
+            }
+        },
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => AppSettings::default(),
+        Err(e) => {
+            eprintln!("Warning: cannot read settings file, using defaults: {e}");
+            AppSettings::default()
+        }
     }
 }
 
-pub fn save_settings(path: &PathBuf, settings: &AppSettings) -> Result<(), String> {
+pub fn save_settings(path: &Path, settings: &AppSettings) -> Result<(), String> {
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("Cannot create settings dir: {e}"))?;
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Cannot create settings dir: {e}"))?;
     }
-    let json =
-        serde_json::to_string_pretty(settings).map_err(|e| format!("Cannot serialize settings: {e}"))?;
+    let json = serde_json::to_string_pretty(settings)
+        .map_err(|e| format!("Cannot serialize settings: {e}"))?;
     std::fs::write(path, json).map_err(|e| format!("Cannot write settings: {e}"))
 }
 
@@ -46,6 +57,7 @@ pub fn save_settings(path: &PathBuf, settings: &AppSettings) -> Result<(), Strin
 mod tests {
     use super::*;
     use std::fs;
+    use std::path::PathBuf;
 
     #[test]
     fn default_settings_are_sensible() {
@@ -81,5 +93,18 @@ mod tests {
         let path = PathBuf::from("/nonexistent/settings.json");
         let settings = load_settings(&path);
         assert_eq!(settings, AppSettings::default());
+    }
+
+    #[test]
+    fn invalid_json_returns_defaults() {
+        let dir = std::env::temp_dir().join("layout_fixer_test_invalid");
+        let _ = fs::create_dir_all(&dir);
+        let path = dir.join(SETTINGS_FILE);
+
+        fs::write(&path, "this is not json {").unwrap();
+        let settings = load_settings(&path);
+        assert_eq!(settings, AppSettings::default());
+
+        let _ = fs::remove_file(&path);
     }
 }
