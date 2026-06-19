@@ -1,56 +1,84 @@
 # Layout Fixer
 
-Privacy-first Tauri desktop utility that fixes text typed with the wrong
-English QWERTY or Ukrainian ЙЦУКЕН keyboard layout. Conversion happens locally;
-the app has no server component and sends no text over the network.
+> Fix text typed in the wrong keyboard layout with one shortcut.
+
+```
+Ghbdtn → Привіт
+```
+
+Layout Fixer is a privacy-first background desktop utility for macOS and Windows
+that repairs selected text typed with the wrong keyboard layout. Press a
+shortcut, and the text is instantly replaced with the correct layout.
 
 ## How it works
 
-1. Select text in any application.
-2. Press `Cmd + Shift + L` on macOS or `Ctrl + Shift + L` on Windows/Linux.
-3. Layout Fixer copies, converts, and pastes the text back into the active app.
+1. Select text in any application
+2. Press `Cmd + Shift + L` (macOS) or `Ctrl + Shift + L` (Windows/Linux)
+3. Text is replaced with the corrected layout
 
-You can also test conversion manually or convert the current clipboard from the
-app window. Direction is detected from the number of Latin and Ukrainian
-Cyrillic letters; ties default to English → Ukrainian.
+That's it. Layout Fixer runs in the background and stays out of your way.
 
-> macOS requires Accessibility permission for Layout Fixer (or the terminal
-> running it) so the app can issue copy and paste keystrokes. Enable it in
-> **System Settings → Privacy & Security → Accessibility**.
+## Privacy
 
-## Prerequisites
+- **Fully local** — all conversion happens on your machine
+- **No cloud** — nothing is sent to any server
+- **No tracking** — no analytics, no telemetry, no accounts
+- **No text leaves your device** — clipboard access is temporary and overwritten after each operation
 
-- Node.js 20.19+ (or 22.12+)
+## Current status
+
+| Platform | Status |
+|----------|--------|
+| macOS | Working — dev tested |
+| Windows | Planned — testing needed |
+| Linux | Experimental |
+
+## Supported layouts
+
+- English (US) ↔ Ukrainian
+
+More layouts coming in future releases. See the [roadmap](ROADMAP.md).
+
+## Development
+
+### Prerequisites
+
+- Node.js 20.19+ or 22.12+
 - Rust 1.85+
 - [Tauri v2 platform prerequisites](https://v2.tauri.app/start/prerequisites/)
 
-## Setup and development
+### Setup
 
 ```bash
 npm install
 npm run tauri dev
 ```
 
-Run only the browser UI with `npm run dev`. Clipboard and global shortcut
-integration are available only in the Tauri app.
+`npm run dev` starts only the browser debug UI. Tray, global shortcut, and
+selected-text replacement require the Tauri process.
 
-## Testing and checks
+### Checks
 
 ```bash
-npm test
 npm run typecheck
+npm test
 npm run build
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
-## Production build
+### Production build
 
 ```bash
 npm run tauri build
 ```
 
-Bundling is disabled in `src-tauri/tauri.conf.json` for this initial MVP. Set
-`bundle.active` to `true` and add production icons when preparing installers.
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for planned features.
 
 ## License
 
