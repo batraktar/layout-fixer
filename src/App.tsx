@@ -23,14 +23,27 @@ interface LayoutInfo {
   enabled: boolean;
 }
 
+interface AppSettings {
+  restoreClipboard: boolean;
+  showSettingsOnStartup: boolean;
+  disabledLayouts: string[];
+}
+
 const isMac = navigator.userAgent.includes("Mac");
 const defaultShortcut = isMac ? "\u2318 \u21E7 L" : "Ctrl + Shift + L";
+
+const defaultSettings: AppSettings = {
+  restoreClipboard: true,
+  showSettingsOnStartup: false,
+  disabledLayouts: [],
+};
 
 export default function App() {
   const [input, setInput] = useState("Ghbdsn");
   const [output, setOutput] = useState("");
   const [convertedDirection, setConvertedDirection] = useState("");
   const [layouts, setLayouts] = useState<LayoutInfo[]>([]);
+  const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [runtime, setRuntime] = useState<RuntimeStatus>({
     backgroundActive: isTauri(),
     shortcut: defaultShortcut,
@@ -68,6 +81,12 @@ export default function App() {
       })
       .catch(() => {});
 
+    void invoke<AppSettings>("get_settings")
+      .then((s) => {
+        if (!disposed) setSettings(s);
+      })
+      .catch(() => {});
+
     void listen<OperationStatus>("operation-status", (event) => {
       setRuntime((current) => ({ ...current, lastStatus: event.payload }));
     }).then((stopListening) => {
@@ -83,6 +102,37 @@ export default function App() {
       unlisten?.();
     };
   }, []);
+
+  const saveSettings = async (updated: AppSettings) => {
+    setSettings(updated);
+    if (isTauri()) {
+      try {
+        await invoke("update_settings", { newSettings: updated });
+      } catch (error) {
+        setRuntime((current) => ({
+          ...current,
+          lastStatus: { kind: "error", message: String(error) },
+        }));
+      }
+    }
+  };
+
+  const toggleLayout = async (id: string) => {
+    if (isTauri()) {
+      try {
+        await invoke("toggle_layout", { id });
+        const list = await invoke<LayoutInfo[]>("list_layouts");
+        setLayouts(list);
+        const s = await invoke<AppSettings>("get_settings");
+        setSettings(s);
+      } catch (error) {
+        setRuntime((current) => ({
+          ...current,
+          lastStatus: { kind: "error", message: String(error) },
+        }));
+      }
+    }
+  };
 
   const convertDebugText = async () => {
     if (isTauri()) {
@@ -165,11 +215,6 @@ export default function App() {
         <p className="shortcut-hint">
           Select text in any app and press the shortcut.
         </p>
-        {layouts.length > 0 && (
-          <p className="shortcut-hint" style={{ marginTop: 4 }}>
-            {layouts.filter((l) => l.enabled).length} layout(s) active
-          </p>
-        )}
         {runtime.lastStatus.message && (
           <div className={`operation-status ${runtime.lastStatus.kind}`} role="status">
             {runtime.lastStatus.message}
@@ -185,14 +230,48 @@ export default function App() {
             {layouts.map((layout) => (
               <li key={layout.id} className="layout-item">
                 <span className="layout-name">{layout.name}</span>
-                <span className={`layout-status ${layout.enabled ? "enabled" : "disabled"}`}>
+                <button
+                  type="button"
+                  className={`layout-toggle ${layout.enabled ? "enabled" : "disabled"}`}
+                  onClick={() => void toggleLayout(layout.id)}
+                >
                   {layout.enabled ? "ON" : "OFF"}
-                </span>
+                </button>
               </li>
             ))}
           </ul>
+          {layouts.filter((l) => l.enabled).length === 0 && (
+            <p className="shortcut-hint" style={{ marginTop: 6 }}>
+              No layouts enabled. Conversion will not work.
+            </p>
+          )}
         </div>
       )}
+
+      {/* Settings */}
+      <div className="group-box">
+        <span className="group-box-label">Settings</span>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={settings.restoreClipboard}
+            onChange={(e) =>
+              void saveSettings({ ...settings, restoreClipboard: e.target.checked })
+            }
+          />
+          <span>Restore previous clipboard after conversion</span>
+        </label>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={settings.showSettingsOnStartup}
+            onChange={(e) =>
+              void saveSettings({ ...settings, showSettingsOnStartup: e.target.checked })
+            }
+          />
+          <span>Show settings window on startup</span>
+        </label>
+      </div>
 
       {/* Test converter */}
       <div className="group-box">
