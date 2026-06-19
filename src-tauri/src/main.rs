@@ -478,7 +478,7 @@ fn toggle_layout(id: String, state: State<'_, AppState>) -> Result<(), String> {
     let mut maps = state.layout_maps.lock().unwrap();
     if config.enabled {
         if !maps.iter().any(|(mid, _)| mid == &id) {
-            let new_maps = layouts::build_maps(config);
+            let new_maps = layouts::build_maps(config).map_err(|e| e)?;
             maps.push((id, new_maps));
         }
     } else {
@@ -500,13 +500,19 @@ fn main() {
             toggle_layout
         ])
         .setup(|app| {
-            let bundled = layouts::load_bundled_layouts();
+            let bundled = layouts::load_bundled_layouts().unwrap_or_else(|error| {
+                eprintln!("Warning: {error}");
+                Vec::new()
+            });
             let state = app.state::<AppState>();
 
             let mut maps = Vec::new();
             for config in &bundled {
                 if config.enabled {
-                    maps.push((config.id.clone(), layouts::build_maps(config)));
+                    match layouts::build_maps(config) {
+                        Ok(m) => maps.push((config.id.clone(), m)),
+                        Err(e) => eprintln!("Warning: skipping layout '{}': {e}", config.id),
+                    }
                 }
             }
 
