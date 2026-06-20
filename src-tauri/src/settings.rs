@@ -12,10 +12,16 @@ pub struct AppSettings {
     pub disabled_layouts: Vec<String>,
     #[serde(default = "default_language")]
     pub language: String,
+    #[serde(default = "default_theme")]
+    pub theme: String,
 }
 
 fn default_language() -> String {
     "en".into()
+}
+
+fn default_theme() -> String {
+    "light".into()
 }
 
 impl Default for AppSettings {
@@ -25,6 +31,7 @@ impl Default for AppSettings {
             show_settings_on_startup: false,
             disabled_layouts: Vec::new(),
             language: "en".into(),
+            theme: "light".into(),
         }
     }
 }
@@ -73,6 +80,7 @@ mod tests {
         assert!(!s.show_settings_on_startup);
         assert!(s.disabled_layouts.is_empty());
         assert_eq!(s.language, "en");
+        assert_eq!(s.theme, "light");
     }
 
     #[test]

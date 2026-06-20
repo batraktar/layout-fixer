@@ -29,6 +29,7 @@ interface AppSettings {
   showSettingsOnStartup: boolean;
   disabledLayouts: string[];
   language: Language;
+  theme: "light" | "dark";
 }
 
 const isMac = navigator.userAgent.includes("Mac");
@@ -39,6 +40,7 @@ const defaultSettings: AppSettings = {
   showSettingsOnStartup: false,
   disabledLayouts: [],
   language: "en",
+  theme: "light",
 };
 
 export default function App() {
@@ -107,6 +109,12 @@ export default function App() {
       unlisten?.();
     };
   }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(settings.theme);
+  }, [settings.theme]);
 
   const saveSettings = async (updated: AppSettings) => {
     setSettings(updated);
@@ -281,6 +289,19 @@ export default function App() {
           >
             <option value="en">English</option>
             <option value="uk">\u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430</option>
+          </select>
+        </div>
+        <div className="select-row">
+          <span className="select-label">{t(lang, "theme")}</span>
+          <select
+            className="win95-select"
+            value={settings.theme}
+            onChange={(e) =>
+              void saveSettings({ ...settings, theme: e.target.value as "light" | "dark" })
+            }
+          >
+            <option value="light">{t(lang, "themeLight")}</option>
+            <option value="dark">{t(lang, "themeDark")}</option>
           </select>
         </div>
       </div>
