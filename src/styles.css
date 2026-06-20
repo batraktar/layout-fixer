@@ -446,6 +446,37 @@ button:disabled:active {
   cursor: pointer;
 }
 
+/* Select row */
+.select-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 11px;
+}
+
+.select-label {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.win95-select {
+  padding: 2px 4px;
+  border: 2px solid;
+  border-color: #808080 #fff #fff #808080;
+  background: #fff;
+  color: #000;
+  font-family: "MS Sans Serif", Tahoma, sans-serif;
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+}
+
+.win95-select:focus {
+  outline: 1px dotted #000;
+  outline-offset: -4px;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
   .app-shell {

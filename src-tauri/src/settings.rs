@@ -10,6 +10,12 @@ pub struct AppSettings {
     pub restore_clipboard: bool,
     pub show_settings_on_startup: bool,
     pub disabled_layouts: Vec<String>,
+    #[serde(default = "default_language")]
+    pub language: String,
+}
+
+fn default_language() -> String {
+    "en".into()
 }
 
 impl Default for AppSettings {
@@ -18,6 +24,7 @@ impl Default for AppSettings {
             restore_clipboard: true,
             show_settings_on_startup: false,
             disabled_layouts: Vec::new(),
+            language: "en".into(),
         }
     }
 }
@@ -65,6 +72,7 @@ mod tests {
         assert!(s.restore_clipboard);
         assert!(!s.show_settings_on_startup);
         assert!(s.disabled_layouts.is_empty());
+        assert_eq!(s.language, "en");
     }
 
     #[test]

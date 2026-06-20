@@ -4,6 +4,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { convertLayout } from "./lib/convertLayout";
 import { detectDirection } from "./lib/detectDirection";
+import { t, type Language } from "./lib/i18n";
 
 interface OperationStatus {
   kind: "info" | "success" | "error";
@@ -27,6 +28,7 @@ interface AppSettings {
   restoreClipboard: boolean;
   showSettingsOnStartup: boolean;
   disabledLayouts: string[];
+  language: Language;
 }
 
 const isMac = navigator.userAgent.includes("Mac");
@@ -36,6 +38,7 @@ const defaultSettings: AppSettings = {
   restoreClipboard: true,
   showSettingsOnStartup: false,
   disabledLayouts: [],
+  language: "en",
 };
 
 export default function App() {
@@ -53,6 +56,8 @@ export default function App() {
       message: isTauri() ? "Loading background status\u2026" : "Browser debug mode",
     },
   });
+
+  const lang = settings.language;
 
   useEffect(() => {
     if (!isTauri()) {
@@ -140,9 +145,7 @@ export default function App() {
         const result = await invoke<string>("convert_text", { text: input });
         setOutput(result);
         const direction = detectDirection(input);
-        setConvertedDirection(
-          direction === "en-to-ua" ? "English \u2192 \u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430" : "\u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430 \u2192 English",
-        );
+        setConvertedDirection(direction === "en-to-ua" ? t(lang, "enToUa") : t(lang, "uaToEn"));
       } catch (error) {
         setRuntime((current) => ({
           ...current,
@@ -152,9 +155,7 @@ export default function App() {
     } else {
       const direction = detectDirection(input);
       setOutput(convertLayout(input, direction));
-      setConvertedDirection(
-        direction === "en-to-ua" ? "English \u2192 \u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430" : "\u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430 \u2192 English",
-      );
+      setConvertedDirection(direction === "en-to-ua" ? t(lang, "enToUa") : t(lang, "uaToEn"));
     }
   };
 
@@ -170,7 +171,7 @@ export default function App() {
 
       setRuntime((current) => ({
         ...current,
-        lastStatus: { kind: "success", message: "Debug result copied" },
+        lastStatus: { kind: "success", message: t(lang, "debugCopied") },
       }));
     } catch (error) {
       setRuntime((current) => ({
@@ -185,7 +186,7 @@ export default function App() {
   return (
     <main className="app-shell">
       <div className="title-bar">
-        <span className="title-bar-text">Layout Fixer</span>
+        <span className="title-bar-text">{t(lang, "appName")}</span>
         <div className="title-bar-controls">
           <button type="button" aria-label="Minimize" tabIndex={-1}>_</button>
         </div>
@@ -193,28 +194,26 @@ export default function App() {
 
       {/* Header */}
       <div className="group-box">
-        <span className="group-box-label">Layout Fixer</span>
+        <span className="group-box-label">{t(lang, "appName")}</span>
         <div className="header-area">
           <div className="header-left">
-            <h1>Layout Fixer</h1>
-            <p className="tagline">Fix wrong keyboard layouts with one shortcut</p>
+            <h1>{t(lang, "appName")}</h1>
+            <p className="tagline">{t(lang, "tagline")}</p>
           </div>
           <span className={`status-badge ${isRunning ? "running" : "error"}`}>
             <span className={`status-dot ${isRunning ? "on" : "off"}`} />
-            {isRunning ? "Running" : "Inactive"}
+            {isRunning ? t(lang, "running") : t(lang, "inactive")}
           </span>
         </div>
       </div>
 
       {/* Shortcut */}
       <div className="group-box">
-        <span className="group-box-label">Shortcut</span>
+        <span className="group-box-label">{t(lang, "shortcutLabel")}</span>
         <div className="shortcut-display">
           <kbd>{runtime.shortcut}</kbd>
         </div>
-        <p className="shortcut-hint">
-          Select text in any app and press the shortcut.
-        </p>
+        <p className="shortcut-hint">{t(lang, "shortcutHint")}</p>
         {runtime.lastStatus.message && (
           <div className={`operation-status ${runtime.lastStatus.kind}`} role="status">
             {runtime.lastStatus.message}
@@ -225,7 +224,7 @@ export default function App() {
       {/* Layouts */}
       {layouts.length > 0 && (
         <div className="group-box">
-          <span className="group-box-label">Layouts</span>
+          <span className="group-box-label">{t(lang, "layouts")}</span>
           <ul className="layout-list">
             {layouts.map((layout) => (
               <li key={layout.id} className="layout-item">
@@ -242,7 +241,7 @@ export default function App() {
           </ul>
           {layouts.filter((l) => l.enabled).length === 0 && (
             <p className="shortcut-hint" style={{ marginTop: 6 }}>
-              No layouts enabled. Conversion will not work.
+              {t(lang, "noLayoutsEnabled")}
             </p>
           )}
         </div>
@@ -250,7 +249,7 @@ export default function App() {
 
       {/* Settings */}
       <div className="group-box">
-        <span className="group-box-label">Settings</span>
+        <span className="group-box-label">{t(lang, "settings")}</span>
         <label className="checkbox-row">
           <input
             type="checkbox"
@@ -259,7 +258,7 @@ export default function App() {
               void saveSettings({ ...settings, restoreClipboard: e.target.checked })
             }
           />
-          <span>Restore previous clipboard after conversion</span>
+          <span>{t(lang, "restoreClipboard")}</span>
         </label>
         <label className="checkbox-row">
           <input
@@ -269,31 +268,44 @@ export default function App() {
               void saveSettings({ ...settings, showSettingsOnStartup: e.target.checked })
             }
           />
-          <span>Show settings window on startup</span>
+          <span>{t(lang, "showOnStartup")}</span>
         </label>
+        <div className="select-row">
+          <span className="select-label">{t(lang, "interfaceLanguage")}</span>
+          <select
+            className="win95-select"
+            value={settings.language}
+            onChange={(e) =>
+              void saveSettings({ ...settings, language: e.target.value as Language })
+            }
+          >
+            <option value="en">English</option>
+            <option value="uk">\u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430</option>
+          </select>
+        </div>
       </div>
 
       {/* Test converter */}
       <div className="group-box">
-        <span className="group-box-label">Test Conversion</span>
-        <label htmlFor="source">Input</label>
+        <span className="group-box-label">{t(lang, "testConversion")}</span>
+        <label htmlFor="source">{t(lang, "inputLabel")}</label>
         <textarea
           id="source"
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="Type or paste text, e.g. Ghbdtn"
+          placeholder={t(lang, "inputPlaceholder")}
           spellCheck={false}
         />
         <div className="actions">
           <button type="button" onClick={() => void convertDebugText()}>
-            Convert
+            {t(lang, "convert")}
           </button>
           <button
             type="button"
             onClick={() => void copyResult()}
             disabled={!output}
           >
-            Copy Result
+            {t(lang, "copyResult")}
           </button>
         </div>
         {output && (
@@ -306,12 +318,12 @@ export default function App() {
 
       {/* Privacy */}
       <div className="group-box">
-        <span className="group-box-label">Privacy</span>
+        <span className="group-box-label">{t(lang, "privacy")}</span>
         <ul className="privacy-list">
-          <li>Works locally on your machine</li>
-          <li>No cloud, no servers</li>
-          <li>No tracking or analytics</li>
-          <li>Your text is never sent anywhere</li>
+          <li>{t(lang, "privacyLocal")}</li>
+          <li>{t(lang, "privacyNoCloud")}</li>
+          <li>{t(lang, "privacyNoTracking")}</li>
+          <li>{t(lang, "privacyNoSend")}</li>
         </ul>
       </div>
 
