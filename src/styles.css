@@ -518,6 +518,60 @@ button:disabled:active {
   outline-offset: -4px;
 }
 
+/* Clipboard history */
+.history-list {
+  list-style: none;
+  padding: 0;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--border-dark);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-item:hover {
+  background: var(--bg-input-dark);
+}
+
+.history-badge {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border: 1px solid;
+  text-transform: uppercase;
+}
+
+.history-badge.original {
+  color: var(--fg-muted);
+  border-color: var(--fg-disabled);
+  background: var(--info-bg);
+}
+
+.history-badge.converted {
+  color: var(--success);
+  border-color: var(--success);
+  background: var(--success-bg);
+}
+
+.history-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg);
+}
+
 /* Responsive */
 @media (max-width: 480px) {
   .app-shell {

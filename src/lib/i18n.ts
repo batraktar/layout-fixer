@@ -29,6 +29,12 @@ interface Translations {
   privacyNoTracking: string;
   privacyNoSend: string;
   debugCopied: string;
+  clipboardHistory: string;
+  clipboardHistoryEmpty: string;
+  clipboardHistoryClear: string;
+  clipboardHistoryCopied: string;
+  original: string;
+  converted: string;
 }
 
 const en: Translations = {
@@ -60,6 +66,12 @@ const en: Translations = {
   privacyNoTracking: "No tracking or analytics",
   privacyNoSend: "Your text is never sent anywhere",
   debugCopied: "Debug result copied",
+  clipboardHistory: "Clipboard History",
+  clipboardHistoryEmpty: "No clipboard entries yet. Convert some text to start.",
+  clipboardHistoryClear: "Clear History",
+  clipboardHistoryCopied: "Copied to clipboard",
+  original: "Original",
+  converted: "Converted",
 };
 
 const uk: Translations = {
@@ -91,6 +103,12 @@ const uk: Translations = {
   privacyNoTracking: "\u0411\u0435\u0437 \u0432\u0456\u0434\u0441\u043b\u0456\u0436\u043a\u0438 \u0442\u0430 \u0430\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0438",
   privacyNoSend: "\u0412\u0430\u0448 \u0442\u0435\u043a\u0441\u0442 \u043d\u0456\u043a\u043e\u043b\u0438 \u043d\u0435 \u043d\u0430\u0434\u0441\u0438\u043b\u0430\u0454\u0442\u044c\u0441\u044f",
   debugCopied: "\u0420\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u0441\u043a\u043e\u043f\u0456\u0439\u043e\u0432\u0430\u043d\u043e",
+  clipboardHistory: "\u0419\u0441\u0442\u043e\u0440\u0456\u044f \u0431\u0443\u0444\u0435\u0440\u0430 \u043e\u0431\u043c\u0456\u043d\u0443",
+  clipboardHistoryEmpty: "\u0416\u043e\u0434\u043d\u0438\u0445 \u0437\u0430\u043f\u0438\u0441\u0456\u0432 \u0449\u0435 \u043d\u0435\u043c\u0430\u0454. \u041a\u043e\u043d\u0432\u0435\u0440\u0442\u0443\u0439\u0442\u0435 \u0442\u0435\u043a\u0441\u0442 \u0434\u043b\u044f \u043f\u043e\u0447\u0430\u0442\u043a\u0443.",
+  clipboardHistoryClear: "\u041e\u0447\u0438\u0441\u0442\u0438\u0442\u0438 \u0456\u0441\u0442\u043e\u0440\u0456\u044e",
+  clipboardHistoryCopied: "\u0421\u043a\u043e\u043f\u0456\u0439\u043e\u0432\u0430\u043d\u043e \u0432 \u0431\u0443\u0444\u0435\u0440 \u043e\u0431\u043c\u0456\u043d\u0443",
+  original: "\u041e\u0440\u0438\u0433\u043d\u0430\u043b",
+  converted: "\u041a\u043e\u043d\u0432\u0435\u0440\u0442\u043e\u0432\u0430\u043d\u043e",
 };
 
 const translations: Record<Language, Translations> = { en, uk };

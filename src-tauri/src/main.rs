@@ -7,6 +7,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
+mod clipboard_history;
 mod layouts;
 mod settings;
 
@@ -53,6 +54,8 @@ struct AppState {
     layout_maps: Mutex<Vec<(String, layouts::LayoutMaps)>>,
     app_settings: Mutex<settings::AppSettings>,
     settings_path: Mutex<PathBuf>,
+    clipboard_history: Mutex<Vec<clipboard_history::ClipboardEntry>>,
+    history_path: Mutex<PathBuf>,
 }
 
 impl Default for AppState {
@@ -68,6 +71,8 @@ impl Default for AppState {
             layout_maps: Mutex::new(Vec::new()),
             app_settings: Mutex::new(settings::AppSettings::default()),
             settings_path: Mutex::new(PathBuf::new()),
+            clipboard_history: Mutex::new(Vec::new()),
+            history_path: Mutex::new(PathBuf::new()),
         }
     }
 }
@@ -263,7 +268,7 @@ fn replace_selected_text(app: &AppHandle) -> Result<ConversionDirection, String>
     let state = app.state::<AppState>();
     let (converted, direction) = convert_layout(&selected_text, &state);
 
-    if let Err(error) = app.clipboard().write_text(converted) {
+    if let Err(error) = app.clipboard().write_text(&converted) {
         let _ = restore_clipboard(app, backup);
         return Err(format!("Cannot write converted text: {error}"));
     }
@@ -288,6 +293,17 @@ fn replace_selected_text(app: &AppHandle) -> Result<ConversionDirection, String>
 
     if should_restore {
         restore_clipboard(app, backup)?;
+    }
+
+    // Save to clipboard history
+    let state = app.state::<AppState>();
+    let max_items = 50;
+    if let Ok(mut history) = state.clipboard_history.lock() {
+        clipboard_history::add_entry(&mut history, &selected_text, "original", max_items);
+        clipboard_history::add_entry(&mut history, &converted, "converted", max_items);
+        if let Ok(path) = state.history_path.lock() {
+            let _ = clipboard_history::save_history(&path, &history);
+        }
     }
 
     Ok(direction)
@@ -552,6 +568,36 @@ fn update_settings(new_settings: settings::AppSettings, state: State<'_, AppStat
     Ok(())
 }
 
+#[tauri::command]
+fn get_clipboard_history(state: State<'_, AppState>) -> Vec<clipboard_history::ClipboardEntry> {
+    state
+        .clipboard_history
+        .lock()
+        .map(|h| h.clone())
+        .unwrap_or_default()
+}
+
+#[tauri::command]
+fn clear_clipboard_history(state: State<'_, AppState>) -> Result<(), String> {
+    let mut history = state
+        .clipboard_history
+        .lock()
+        .map_err(|e| format!("Lock error: {e}"))?;
+    history.clear();
+    let path = state
+        .history_path
+        .lock()
+        .map_err(|e| format!("Lock error: {e}"))?;
+    clipboard_history::clear_history(&path)
+}
+
+#[tauri::command]
+fn copy_from_history(text: String, app: AppHandle) -> Result<(), String> {
+    app.clipboard()
+        .write_text(&text)
+        .map_err(|e| format!("Cannot copy to clipboard: {e}"))
+}
+
 fn main() {
     let builder = tauri::Builder::default()
         .manage(AppState::default())
@@ -563,7 +609,10 @@ fn main() {
             list_layouts,
             toggle_layout,
             get_settings,
-            update_settings
+            update_settings,
+            get_clipboard_history,
+            clear_clipboard_history,
+            copy_from_history
         ]);
 
     let builder = setup_window_event_handler(builder);
@@ -582,6 +631,9 @@ fn main() {
                 eprintln!("Warning: could not save settings: {e}");
             }
 
+            let history_file = clipboard_history::history_path(&app_data_dir);
+            let history = clipboard_history::load_history(&history_file);
+
             let bundled = layouts::load_bundled_layouts().unwrap_or_else(|error| {
                 eprintln!("Warning: {error}");
                 Vec::new()
@@ -593,6 +645,12 @@ fn main() {
             }
             if let Ok(mut settings) = state.app_settings.lock() {
                 *settings = app_settings.clone();
+            }
+            if let Ok(mut hp) = state.history_path.lock() {
+                *hp = history_file;
+            }
+            if let Ok(mut ch) = state.clipboard_history.lock() {
+                *ch = history;
             }
 
             let mut maps = Vec::new();

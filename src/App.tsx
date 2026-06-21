@@ -32,6 +32,12 @@ interface AppSettings {
   theme: "light" | "dark";
 }
 
+interface ClipboardEntry {
+  text: string;
+  timestamp: number;
+  source: string;
+}
+
 const isMac = navigator.userAgent.includes("Mac");
 const defaultShortcut = isMac ? "\u2318 \u21E7 L" : "Ctrl + Shift + L";
 
@@ -48,6 +54,7 @@ export default function App() {
   const [output, setOutput] = useState("");
   const [convertedDirection, setConvertedDirection] = useState("");
   const [layouts, setLayouts] = useState<LayoutInfo[]>([]);
+  const [clipboardHistory, setClipboardHistory] = useState<ClipboardEntry[]>([]);
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [runtime, setRuntime] = useState<RuntimeStatus>({
     backgroundActive: isTauri(),
@@ -91,6 +98,12 @@ export default function App() {
     void invoke<AppSettings>("get_settings")
       .then((s) => {
         if (!disposed) setSettings(s);
+      })
+      .catch(() => {});
+
+    void invoke<ClipboardEntry[]>("get_clipboard_history")
+      .then((h) => {
+        if (!disposed) setClipboardHistory(h);
       })
       .catch(() => {});
 
@@ -144,6 +157,43 @@ export default function App() {
           lastStatus: { kind: "error", message: String(error) },
         }));
       }
+    }
+  };
+
+  const refreshHistory = async () => {
+    if (isTauri()) {
+      try {
+        const h = await invoke<ClipboardEntry[]>("get_clipboard_history");
+        setClipboardHistory(h);
+      } catch {}
+    }
+  };
+
+  const clearHistory = async () => {
+    if (isTauri()) {
+      try {
+        await invoke("clear_clipboard_history");
+        setClipboardHistory([]);
+      } catch {}
+    }
+  };
+
+  const copyFromHistory = async (text: string) => {
+    try {
+      if (isTauri()) {
+        await invoke("copy_from_history", { text });
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+      setRuntime((current) => ({
+        ...current,
+        lastStatus: { kind: "success", message: t(lang, "clipboardHistoryCopied") },
+      }));
+    } catch (error) {
+      setRuntime((current) => ({
+        ...current,
+        lastStatus: { kind: "error", message: String(error) },
+      }));
     }
   };
 
@@ -334,6 +384,37 @@ export default function App() {
             <span className="result-label">{convertedDirection}</span>
             <p className="result-value">{output}</p>
           </div>
+        )}
+      </div>
+
+      {/* Clipboard History */}
+      <div className="group-box">
+        <span className="group-box-label">{t(lang, "clipboardHistory")}</span>
+        {clipboardHistory.length === 0 ? (
+          <p className="shortcut-hint">{t(lang, "clipboardHistoryEmpty")}</p>
+        ) : (
+          <>
+            <ul className="history-list">
+              {[...clipboardHistory].reverse().map((entry, i) => (
+                <li
+                  key={`${entry.timestamp}-${i}`}
+                  className="history-item"
+                  onClick={() => void copyFromHistory(entry.text)}
+                  title={t(lang, "clipboardHistoryCopied")}
+                >
+                  <span className={`history-badge ${entry.source}`}>
+                    {entry.source === "original" ? t(lang, "original") : t(lang, "converted")}
+                  </span>
+                  <span className="history-text">{entry.text}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="actions" style={{ marginTop: 6 }}>
+              <button type="button" onClick={() => void clearHistory()}>
+                {t(lang, "clipboardHistoryClear")}
+              </button>
+            </div>
+          </>
         )}
       </div>
 
