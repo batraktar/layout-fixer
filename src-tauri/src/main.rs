@@ -116,6 +116,23 @@ fn send_shortcut(key: char) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
+fn send_shortcut_main(app: &AppHandle, key: char) -> Result<(), String> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    let handle = app.clone();
+    let _ = handle.run_on_main_thread(move || {
+        let result = send_shortcut(key);
+        let _ = tx.send(result);
+    });
+    rx.recv()
+        .map_err(|e| format!("Channel error: {e}"))?
+}
+
+#[cfg(not(target_os = "macos"))]
+fn send_shortcut_main(_app: &AppHandle, key: char) -> Result<(), String> {
+    send_shortcut(key)
+}
+
 fn detect_direction(text: &str) -> ConversionDirection {
     const UKRAINIAN_LETTERS: &str = "абвгґдеєжзиіїйклмнопрстуфхцчшщьюя";
 
@@ -246,7 +263,7 @@ fn replace_selected_text(app: &AppHandle) -> Result<ConversionDirection, String>
         .write_text(&marker)
         .map_err(|error| format!("Cannot access the clipboard: {error}"))?;
 
-    if let Err(error) = send_shortcut('c') {
+    if let Err(error) = send_shortcut_main(app, 'c') {
         let _ = restore_clipboard(app, backup);
         return Err(format!("Copy failed. Check input permissions: {error}"));
     }
@@ -276,7 +293,7 @@ fn replace_selected_text(app: &AppHandle) -> Result<ConversionDirection, String>
 
     thread::sleep(Duration::from_millis(70));
 
-    if let Err(error) = send_shortcut('v') {
+    if let Err(error) = send_shortcut_main(app, 'v') {
         let _ = restore_clipboard(app, backup);
         return Err(format!("Paste failed. Check input permissions: {error}"));
     }
