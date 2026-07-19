@@ -1,84 +1,100 @@
 # Layout Fixer
 
-> Fix text typed in the wrong keyboard layout with one shortcut.
+> Typed something in the wrong language? One keypress fixes it.
 
 ```
 Ghbdtn → Привіт
 ```
 
-Layout Fixer is a privacy-first background desktop utility for macOS and Windows
-that repairs selected text typed with the wrong keyboard layout. Press a
-shortcut, and the text is instantly replaced with the correct layout.
+You're typing an email, switch languages mid-sentence, and suddenly your text
+looks like this. Layout Fixer detects the mistake and fixes it instantly — no
+retyping, no copy-pasting, no frustration.
 
-## How it works
+---
 
-1. Select text in any application
-2. Press `Cmd + Shift + L` (macOS) or `Ctrl + Shift + L` (Windows/Linux)
-3. Text is replaced with the corrected layout
+## Features
 
-That's it. Layout Fixer runs in the background and stays out of your way.
+- **Instant fix** — select text, press one shortcut, done
+- **Works everywhere** — any app, any text field
+- **Custom hotkeys** — use whatever shortcut feels natural to you
+- **Clipboard history** — keep track of your recent conversions
+- **Privacy-first** — everything stays on your machine, nothing is sent anywhere
+- **Lightweight** — lives in your system tray, uses almost no resources
+- **macOS & Windows** — dark and light theme support
+
+---
+
+## Installation
+
+1. Go to the [Releases](../../releases) page
+2. Download the installer for your system:
+   - **macOS** — `.dmg` file
+   - **Windows** — `.exe` installer
+3. Run the installer and follow the prompts
+4. Layout Fixer will appear in your system tray — that's it!
+
+---
+
+## Usage
+
+1. Select text typed in the wrong layout
+2. Press the shortcut:
+   - **macOS:** `Cmd + Shift + L`
+   - **Windows:** `Ctrl + Shift + L`
+3. Text is fixed instantly
+
+The app sits quietly in your tray until you need it.
+
+---
+
+## Custom Hotkeys
+
+Don't like the default shortcut? Change it:
+
+1. Open Layout Fixer from the system tray
+2. Go to **Settings**
+3. Enter your preferred hotkey in the **Custom Hotkey** field
+4. Save — the new shortcut is active immediately
+
+**Format examples:**
+- `Ctrl+Shift+L`
+- `Cmd+Alt+K`
+- `Ctrl+Alt+M`
+
+Some shortcuts are reserved by the system (like `Ctrl+C` or `Cmd+Space`) and
+can't be used. The app will let you know if your chosen hotkey is taken.
+
+---
+
+## Supported Layouts
+
+| From | To |
+|------|----|
+| English (US) | Ukrainian |
+
+More language pairs are coming in future releases.
+
+---
 
 ## Privacy
 
-- **Fully local** — all conversion happens on your machine
-- **No cloud** — nothing is sent to any server
-- **No tracking** — no analytics, no telemetry, no accounts
-- **No text leaves your device** — clipboard access is temporary and overwritten after each operation
+- Everything runs **locally** on your device
+- **No internet connection** required
+- **No tracking**, no analytics, no accounts
+- Clipboard access is temporary and overwritten after each use
 
-## Current status
-
-| Platform | Status |
-|----------|--------|
-| macOS | Working — dev tested |
-| Windows | Planned — testing needed |
-| Linux | Experimental |
-
-## Supported layouts
-
-- English (US) ↔ Ukrainian
-
-More layouts coming in future releases. See the [roadmap](ROADMAP.md).
+---
 
 ## Development
-
-### Prerequisites
-
-- Node.js 20.19+ or 22.12+
-- Rust 1.85+
-- [Tauri v2 platform prerequisites](https://v2.tauri.app/start/prerequisites/)
-
-### Setup
 
 ```bash
 npm install
 npm run tauri dev
 ```
 
-`npm run dev` starts only the browser debug UI. Tray, global shortcut, and
-selected-text replacement require the Tauri process.
+Requires: Node.js 20+, Rust 1.85+, and [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/).
 
-### Checks
-
-```bash
-npm run typecheck
-npm test
-npm run build
-cargo check --manifest-path src-tauri/Cargo.toml
-```
-
-### Production build
-
-```bash
-npm run tauri build
-```
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## Roadmap
-
-See [ROADMAP.md](ROADMAP.md) for planned features.
+---
 
 ## License
 
