@@ -1,101 +1,214 @@
-# Layout Fixer
+<div align="center">
 
-> Typed something in the wrong language? One keypress fixes it.
+# ⌨️ Layout Fixer
+
+**Виправлює текст, набраний неправильною розкладкою, одним натисканням.**
 
 ```
 Ghbdtn → Привіт
 ```
 
-You're typing an email, switch languages mid-sentence, and suddenly your text
-looks like this. Layout Fixer detects the mistake and fixes it instantly — no
-retyping, no copy-pasting, no frustration.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/batraktar/layout-fixer)](../../releases)
+[![Downloads](https://img.shields.io/github/downloads/batraktar/layout-fixer/total)](../../releases)
+
+[Скачати](../../releases/latest) • [Як це працює](#як-це-працює) • [Налаштування](#кастомні-хешкі) • [Для розробників](#для-розробників)
+
+</div>
 
 ---
 
-## Features
+## Проблема
 
-- **Instant fix** — select text, press one shortcut, done
-- **Works everywhere** — any app, any text field
-- **Custom hotkeys** — use whatever shortcut feels natural to you
-- **Clipboard history** — keep track of your recent conversions
-- **Privacy-first** — everything stays on your machine, nothing is sent anywhere
-- **Lightweight** — lives in your system tray, uses almost no resources
-- **macOS & Windows** — dark and light theme support
+Ви пишете листа, перемикаєте мову посеред речення, і раптом ваш текст виглядає так:
 
----
+> Ghbdtn rfr gjkt,yj? Gjkyen lj,ftn rhfcsd
 
-## Installation
+Знайомо? Layout Fixer вирішує цю проблему назавжди.
 
-1. Go to the [Releases](../../releases) page
-2. Download the installer for your system:
-   - **macOS** — `.dmg` file
-   - **Windows** — `.exe` installer
-3. Run the installer and follow the prompts
-4. Layout Fixer will appear in your system tray — that's it!
+## Рішення
+
+1. Виділіть текст
+2. Натисніть `Cmd + Shift + L` (macOS) або `Ctrl + Shift + L` (Windows)
+3. Текст виправлено
+
+**Більше ніякого перемикання розкладки. Більше ніякого копіювання-вставки.**
 
 ---
 
-## Usage
+<div align="center">
 
-1. Select text typed in the wrong layout
-2. Press the shortcut:
+### 🎬 Як це працює
+
+<!-- TODO: Додати GIF або відео демонстрацію -->
+
+</div>
+
+---
+
+## Фічі
+
+| | Фіча | Опис |
+|---|------|------|
+| ⚡ | **Миттєве виправлення** | Виділив текст → натиснув шорткат → готово |
+| 🌍 | **Працює скрізь** | Будь-який додаток, будь-яке текстове поле |
+| 🎯 | **Кастомні хешкі** | Використовуйте будь-яку зручну комбінацію клавіш |
+| 📋 | **Історія буферу** | Переглядайте останні конвертації |
+| 🔒 | **Приватність** | Все локально, нікуди не відправляється |
+| 🪶 | **Легковажність** | Живе в треї, майже не використовує ресурси |
+| 🎨 | **Теми** | Підтримка світлої та темної теми |
+
+---
+
+## Встановлення
+
+### macOS
+
+1. Перейдіть на [Releases](../../releases)
+2. Завантажте `.dmg` файл
+3. Відкрийте `.dmg` та перетягніть Layout Fixer в Applications
+4. Запустіть додаток — іконка з'явиться в треї
+
+> **Примітка:** macOS може заблокувати запуск. Перейдіть в *Системні налаштування → Конфіденційність та безпека* та дозвольте запуск.
+
+### Windows
+
+1. Перейдіть на [Releases](../../releases)
+2. Завантажте `.exe` інсталятор
+3. Запустіть інсталятор та дотримуйтесь інструкцій
+4. Layout Fixer з'явиться в треї
+
+---
+
+## Використання
+
+### Базове використання
+
+1. Наберіть текст неправильною розкладкою
+2. Виділіть його
+3. Натисніть шорткат:
    - **macOS:** `Cmd + Shift + L`
    - **Windows:** `Ctrl + Shift + L`
-3. Text is fixed instantly
+4. Текст виправлено!
 
-The app sits quietly in your tray until you need it.
+### Кастомні хешкі
 
----
+Не подобається стандартний шорткат? Змініть його:
 
-## Custom Hotkeys
+1. Відкрийте Layout Fixer з треї
+2. Перейдіть в **Налаштування**
+3. Введіть бажану комбінацію клавіш в поле **Custom Hotkey**
+4. Збережіть — новий шорткат працює одразу
 
-Don't like the default shortcut? Change it:
+**Приклади формату:**
 
-1. Open Layout Fixer from the system tray
-2. Go to **Settings**
-3. Enter your preferred hotkey in the **Custom Hotkey** field
-4. Save — the new shortcut is active immediately
+| Шорткат | Платформа |
+|---------|-----------|
+| `Ctrl+Shift+L` | Windows/Linux |
+| `Cmd+Shift+L` | macOS |
+| `Ctrl+Alt+K` | Універсальний |
+| `Cmd+Option+M` | macOS |
 
-**Format examples:**
-- `Ctrl+Shift+L`
-- `Cmd+Alt+K`
-- `Ctrl+Alt+M`
-
-Some shortcuts are reserved by the system (like `Ctrl+C` or `Cmd+Space`) and
-can't be used. The app will let you know if your chosen hotkey is taken.
-
----
-
-## Supported Layouts
-
-| From | To |
-|------|----|
-| English (US) | Ukrainian |
-
-More language pairs are coming in future releases.
+> ⚠️ Деякі комбінації зарезервовані системою (`Ctrl+C`, `Cmd+Space` тощо). Додаток повідомить, якщо обрана комбінація зайнята.
 
 ---
 
-## Privacy
+## Підтримувані розкладки
 
-- Everything runs **locally** on your device
-- **No internet connection** required
-- **No tracking**, no analytics, no accounts
-- Clipboard access is temporary and overwritten after each use
+| З | На |
+|---|-----|
+| English (US) | Українська |
+| Українська | English (US) |
+
+Більше мовних пар буде додано в майбутніх релізах. Дивіться [ Roadmap](ROADMAP.md).
 
 ---
 
-## Development
+## Приватність
+
+- ✅ **Повністю локально** — всі конвертації на вашому пристрої
+- ✅ **Без інтернету** — не потрібне з'єднання з мережею
+- ✅ **Без телеметрії** — ніякого аналітику, трекінгу, акаунтів
+- ✅ **Буфер тимчасовий** — доступ до буферу обміну перезаписується після кожної операції
+
+---
+
+## Для розробників
+
+### Передумови
+
+- Node.js 20.19+ або 22.12+
+- Rust 1.85+
+- [Tauri v2 платформ-залежності](https://v2.tauri.app/start/prerequisites/)
+
+### Запуск
 
 ```bash
+# Встановити залежності
 npm install
+
+# Запустити в режимі розробки
 npm run tauri dev
 ```
 
-Requires: Node.js 20+, Rust 1.85+, and [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/).
+### Перевірки
+
+```bash
+npm run typecheck      # TypeScript
+npm test               # Тести фронтенду
+cargo test             # Тести Rust
+npm run build          # Збірка фронтенду
+```
+
+### Збірка релізу
+
+```bash
+npm run tauri build
+```
+
+### CI/CD
+
+Пуш тегу `v*` автоматично запускає збірку для Windows та macOS через GitHub Actions та публікує бінарники як assets релізу.
 
 ---
 
-## License
+## Структура проєкту
+
+```
+layout-fixer/
+├── src/                    # React фронтенд (TypeScript)
+├── src-tauri/              # Tauri бекенд (Rust)
+│   ├── src/
+│   │   ├── main.rs         # Точка входу, трей, шорткати
+│   │   ├── settings.rs     # Налаштування (serde + JSON)
+│   │   ├── hotkey_validator.rs  # Валідація хешків
+│   │   ├── layouts.rs      # Маппінг розкладок
+│   │   └── clipboard_history.rs # Історія буферу
+│   └── tauri.conf.json     # Конфігурація Tauri
+├── .github/workflows/      # CI/CD (GitHub Actions)
+└── package.json
+```
+
+---
+
+## Roadmap
+
+Дивіться [ROADMAP.md](ROADMAP.md) для планів розвитку.
+
+## Contributing
+
+Дивіться [CONTRIBUTING.md](CONTRIBUTING.md) для правил участі.
+
+---
+
+## Ліцензія
 
 [MIT](LICENSE)
+
+---
+
+<div align="center">
+
+**Зроблено з ❤️ для тих, хто постійно забуває перемикнути розкладку**
+
+</div>
