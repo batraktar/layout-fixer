@@ -14,6 +14,8 @@ pub struct AppSettings {
     pub language: String,
     #[serde(default = "default_theme")]
     pub theme: String,
+    #[serde(default = "default_hotkey")]
+    pub custom_hotkey: String,
 }
 
 fn default_language() -> String {
@@ -24,6 +26,10 @@ fn default_theme() -> String {
     "light".into()
 }
 
+fn default_hotkey() -> String {
+    "CommandOrControl+Shift+L".into()
+}
+
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
@@ -32,6 +38,7 @@ impl Default for AppSettings {
             disabled_layouts: Vec::new(),
             language: "en".into(),
             theme: "light".into(),
+            custom_hotkey: "CommandOrControl+Shift+L".into(),
         }
     }
 }
@@ -81,6 +88,7 @@ mod tests {
         assert!(s.disabled_layouts.is_empty());
         assert_eq!(s.language, "en");
         assert_eq!(s.theme, "light");
+        assert_eq!(s.custom_hotkey, "CommandOrControl+Shift+L");
     }
 
     #[test]

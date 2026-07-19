@@ -8,6 +8,7 @@ use std::{
 };
 
 mod clipboard_history;
+mod hotkey_validator;
 mod layouts;
 mod settings;
 
